@@ -25,10 +25,17 @@ class App:
         # check difference between current time and starting time
         # determine probability based on time played
         # check if something happens (agent, generator, prison ...)
-        pass
+        Guerrilla.group.update(Army.group, Generator.group, Prison.group)
 
     def on_render(self):
+        # blank screen for new drawing
         self.display.fill((255, 255, 255))
+        # render each sprite
+        Army.group.draw(self.display)
+        Prison.group.draw(self.display)
+        Generator.group.draw(self.display)
+        Guerrilla.group.draw(self.display)
+
         # blit virtual screen to actual display
         self.screen.blit(self.display, (0, 0))
         pygame.display.update()
@@ -39,7 +46,8 @@ class App:
     def on_run(self):
         # record time that game starts
         # initialize all the sprites
-
+        pygame.time.set_timer(Generator.group.update(Army.group, Guerrilla.group), Generator.WAVE)
+        pygame.time.set_timer(Army.group.update(), Army.STEP)
         while self.running:
             for event in pygame.event.get():
                 self.on_event(event)
@@ -50,10 +58,11 @@ class App:
         self.on_cleanup()
 
 class Army(pygame.sprite.Sprite):
-    self.army_group = pygame.sprite.group()  #??
+    self.group = pygame.sprite.group()  #??
     self.instances = {}
     self.CUTOFF = 30  # lowest transparency
     self.SPREADRATE = 10 
+    self.STEP = 1000 # milliseconds
 
     def __init__(self, x, y, communism):
         super().__init__()
@@ -68,10 +77,10 @@ class Army(pygame.sprite.Sprite):
         # alpha range: 30-90% 
         self.image.set_alpha((self.communism + 30) * 2.55)
         Army.instances[f'{self.x},{self.y}'] = self
-        Army.army_group.add(self)
+        Army.group.add(self)
 
     def destroy(self):
-        Army.army_group.remove(self)
+        Army.group.remove(self)
         del Army.instances[f'{self.x},{self.y}']
 
     def update(self):
@@ -108,7 +117,7 @@ class Army(pygame.sprite.Sprite):
                     # decompose key
                     self.xs, self.ys = key.split(',')
                     # instantiate
-                    Army.army_group.add(int(self.xs), int(self.ys), int(self.spread/len(self.keys)))
+                    Army.group.add(int(self.xs), int(self.ys), int(self.spread/len(self.keys)))
                 # donate communism
                 else:
                     Army.instances[key].communism += int(self.spread/len(self.keys))
@@ -117,7 +126,7 @@ class Agent(pygame.sprite.Sprite):
     pass
 
 class Guerrilla(pygame.sprite.Sprite):
-    self.guerrilla_group = pygame.sprite.group()  #??
+    self.group = pygame.sprite.group()  #??
     self.MAX_SPEED = 20
     self.ATTACK_RADIUS = 4
     self.ATTACK_STRENGTH = 1 
@@ -132,10 +141,10 @@ class Guerrilla(pygame.sprite.Sprite):
         self.vel_x, self.vel_y = 0, 0
         self.target = self.x, self.y
 
-        Guerrilla.guerrilla_group.add(self)
+        Guerrilla.group.add(self)
 
     def destroy(self):
-        Army.army_group.remove(self)
+        Army.group.remove(self)
 
     def update(self, army_group, generator_group, prison_group):
         super().update()
@@ -153,7 +162,7 @@ class Guerrilla(pygame.sprite.Sprite):
         self.prison_collisions = pygame.sprite.spritecollide(self, prison_group, False)
         # add soldiers
         for prison in self.prison_collisions:
-            Guerrilla.guerrilla_group.add(Guerrilla(prison.x, prison.y))
+            Guerrilla.group.add(Guerrilla(prison.x, prison.y))
             # delete prison
             self.prison_collisions.remove(prison)
 
@@ -188,8 +197,10 @@ class Guerrilla(pygame.sprite.Sprite):
             army.communism -= Guerrilla.ATTACK_STRENGTH
 
 class Generator(pygame.sprite.Sprite):
+    self.group = pygame.sprite.group()  #??
     self.TRIGGER = 4 # number of guerrillas to trigger soviets
     self.DETECTION = 200 # detection radius for soviet reinforcements
+    self.WAVE = 2000 # milliseconds
 
     def __init__(self, x, y, rate):
         super().__init__()
@@ -200,6 +211,7 @@ class Generator(pygame.sprite.Sprite):
         self.ratio = 1.0
         self.image = pygame.Surface([32, 32])
         self.image.fill ((0, 0, 0))
+        Generator.group.add(self)
 
     def update(self, army_group, guerrilla_group):
         super().update()
@@ -221,18 +233,15 @@ class Generator(pygame.sprite.Sprite):
                     self.rate *= 5
             
 class Prison(pygame.sprite.Sprite):
-    def __init__(self, x, y, inmates):
+    self.group = pygame.sprite.group()  #??
+
+    def __init__(self, x, y):
         super().__init__()
         self.x, self.y = x, y
         self.image = pygame.Surface([32, 32])
 
         self.image.fill ((0, 0, 255))
-
-        self.inmates = inmates
-
-    def update(self):
-        super().update()
-        # release soldiers
+        Prison.group.add(self)
 
 if __name__ == "__main__":
     game = App()
