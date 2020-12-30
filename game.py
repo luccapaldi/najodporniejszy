@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
 
+"""
+1. background
+2. collisions with walls
+3. make the map
+4. sprite work
+5. sound and music
+6. menu
+* * *
+- agents
+- improved controls
+- animations
+- statistics screen
+- timer
+"""
+
 import pygame
 import math
 
@@ -16,16 +31,40 @@ class App:
         self.display = pygame.Surface((480, 270))
 
         self.clock = pygame.time.Clock()
+        self.dragging = None
 
     def on_event(self, event):
         if event.type == pygame.QUIT:
             self.running = False
+        # left click
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            # check if we clicked on Guerrilla
+            for guerrilla in Guerrilla.group:
+                # if mouse intersects with guerrilla
+                if guerrilla.rect.collidepoint(event.pos):
+                   self.dragging = guerrilla
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            if self.dragging is not None:
+                self.dragging.target = event.pos
+                self.dragging = None
+        elif event.type == pygame.MOUSEMOTION:
+            pass
 
     def on_loop(self):
         # check difference between current time and starting time
         # determine probability based on time played
         # check if something happens (agent, generator, prison ...)
         Guerrilla.group.update(Army.group, Generator.group, Prison.group)
+
+        if self.generator_action >= Generator.WAVE:
+            Generator.group.update(Army.group, Guerrilla.group)
+            self.generator_action = 0
+        if self.army_action >= Army.STEP:
+            Army.group.update()
+            self.army_action = 0
+
+        self.generator_action += 16
+        self.army_action += 16
 
     def on_render(self):
         # blank screen for new drawing
@@ -46,8 +85,18 @@ class App:
     def on_run(self):
         # record time that game starts
         # initialize all the sprites
-        pygame.time.set_timer(Generator.group.update(Army.group, Guerrilla.group), Generator.WAVE)
-        pygame.time.set_timer(Army.group.update(), Army.STEP)
+        self.generator_action = 0
+        self.army_action = 0
+
+        Army.group.add(Army(1, 1, 90))
+        Army.group.add(Army(1, 2, 90))
+        Army.group.add(Army(2, 1, 90))
+        Army.group.add(Army(2, 2, 90))
+        Army.group.add(Army(3, 5, 90))
+        Generator.group.add(Generator(0, 0, 30))
+        Guerrilla.group.add(Guerrilla(100, 50))
+        Prison.group.add(Prison(170,170))
+
         while self.running:
             for event in pygame.event.get():
                 self.on_event(event)
@@ -58,26 +107,38 @@ class App:
         self.on_cleanup()
 
 class Army(pygame.sprite.Sprite):
-    self.group = pygame.sprite.group()  #??
-    self.instances = {}
-    self.CUTOFF = 30  # lowest transparency
-    self.SPREADRATE = 10 
-    self.STEP = 1000 # milliseconds
+    group = pygame.sprite.Group()  #??
+    instances = {}
+    CUTOFF = 30  # lowest transparency
+    SPREADRATE = 20 
+    STEP = 1000 # milliseconds
+    DIM = 8
 
     def __init__(self, x, y, communism):
+        """Communism must start between 30 and 90."""
         super().__init__()
 
         self.x, self.y = x, y
-        self.dim = 16
         self.communism = communism
 
-        self.image = pygame.Surface([self.dim, self.dim])
+        self.image = pygame.Surface([Army.DIM, Army.DIM])
         self.image.fill((218, 10, 10))
 
         # alpha range: 30-90% 
-        self.image.set_alpha((self.communism + 30) * 2.55)
+        if self.communism < 30:
+            self.image.set_alpha(0.3 * 255)
+        elif self.communism > 90:
+            self.image.set_alpha(0.9 * 255)
+        else:
+            self.image.set_alpha((self.communism / 100) * 255)
+
+        # Fetch rectangle object with dimensions of image
+        # Update object position by setting rect.x and rect.y
+        self.rect = self.image.get_rect()
+        self.rect.topleft = [x * Army.DIM, y * Army.DIM]
+
         Army.instances[f'{self.x},{self.y}'] = self
-        Army.group.add(self)
+        #Army.group.add(self)
 
     def destroy(self):
         Army.group.remove(self)
@@ -86,50 +147,62 @@ class Army(pygame.sprite.Sprite):
     def update(self):
         super().update()
         # Check communism level
-        if self.communism < self.CUTOFF:
+        if self.communism <= 0:
             self.destroy()
-             
         else:
             # determine communism available to spread
             self.spread = self.communism - self.CUTOFF
-            if spread > Army.SPREADRATE:
+            if self.spread > Army.SPREADRATE:
                 self.spread = Army.SPREADRATE
-            
-            # check neighbors
-            self.keys = [f'{self.x},{self.y + self.dim}',
-                    f'{self.x},{self.y - self.dim}',
-                    f'{self.x + self.dim},{self.y}',
-                    f'{self.x - self.dim},{self.y}',
-                    f'{self.x - self.dim},{self.y + self.dim}',
-                    f'{self.x - self.dim},{self.y - self.dim}',
-                    f'{self.x + self.dim},{self.y + self.dim}',
-                    f'{self.x + self.dim},{self.y - self.dim}']
-            
-            # delete invalid objects
-            for key in self.keys:
-                if key in Army.instances and Army.instances[key].communism >= self.communism:
-                    self.keys.remove(key)
+            if self.spread > 0:
+                # check neighbors
+                self.keys = [f'{self.x},{self.y + 1}',
+                             f'{self.x},{self.y - 1}',
+                             f'{self.x + 1},{self.y}',
+                             f'{self.x - 1},{self.y}',
+                             f'{self.x - 1},{self.y + 1}',
+                             f'{self.x - 1},{self.y - 1}',
+                             f'{self.x + 1},{self.y + 1}',
+                             f'{self.x + 1},{self.y - 1}']
+                
+                # delete invalid objects
+                for key in self.keys:
+                    if key in Army.instances and Army.instances[key].communism >= self.communism:
+                        self.keys.remove(key)
 
-            # spread communism to valid objects
-            # can only spread to things with communism less than self
-            for key in self.keys:
-                if key not in Army.instances:
-                    # decompose key
-                    self.xs, self.ys = key.split(',')
-                    # instantiate
-                    Army.group.add(int(self.xs), int(self.ys), int(self.spread/len(self.keys)))
-                # donate communism
-                else:
-                    Army.instances[key].communism += int(self.spread/len(self.keys))
+                # spread communism to valid objects
+                # can only spread to things with communism less than self
+                for key in self.keys:
+                    if key not in Army.instances:
+                        # decompose key
+                        self.xs, self.ys = key.split(',')
+                        # instantiate
+                        Army.group.add(Army(int(self.xs), int(self.ys), int(self.spread/len(self.keys))))
+                        # remove some communism from self
+                        self.communism -= int(self.spread/len(self.keys))
+                        # donate communism
+                    else:
+                        Army.instances[key].communism += int(self.spread/len(self.keys))
+                        # remove some communism from self
+                        self.communism -= int(self.spread/len(self.keys))
+
+        # Update alpha value to represent communism level
+        if self.communism < 30:
+            self.image.set_alpha(0.3 * 255)
+        elif self.communism > 90:
+            self.image.set_alpha(0.9 * 255)
+        else:
+            self.image.set_alpha((self.communism / 100) * 255)
         
 class Agent(pygame.sprite.Sprite):
     pass
 
 class Guerrilla(pygame.sprite.Sprite):
-    self.group = pygame.sprite.group()  #??
-    self.MAX_SPEED = 20
-    self.ATTACK_RADIUS = 4
-    self.ATTACK_STRENGTH = 1 
+    group = pygame.sprite.Group()  #??
+    MAX_SPEED = 2
+    ATTACK_RADIUS = 1.5
+    ATTACK_STRENGTH = 1 
+    TOLERANCE = MAX_SPEED * 1
 
     def __init__(self, x, y):
         super().__init__()
@@ -141,10 +214,15 @@ class Guerrilla(pygame.sprite.Sprite):
         self.vel_x, self.vel_y = 0, 0
         self.target = self.x, self.y
 
-        Guerrilla.group.add(self)
+        # Fetch rectangle object with dimensions of image
+        # Update object position by setting rect.x and rect.y
+        self.rect = self.image.get_rect()
+        self.rect.topleft = [x, y]
+
+#        Guerrilla.group.add(self)
 
     def destroy(self):
-        Army.group.remove(self)
+        Guerrilla.group.remove(self)
 
     def update(self, army_group, generator_group, prison_group):
         super().update()
@@ -164,43 +242,59 @@ class Guerrilla(pygame.sprite.Sprite):
         for prison in self.prison_collisions:
             Guerrilla.group.add(Guerrilla(prison.x, prison.y))
             # delete prison
-            self.prison_collisions.remove(prison)
+            prison_group.remove(prison)
 
         # moving
-        if self.target != self.x, self.y:
+        if abs(self.target[0] - self.x) > Guerrilla.TOLERANCE and abs(self.target[1] - self.y) > Guerrilla.TOLERANCE:
             # calculate velocity vector
             self.xs = self.target[0] - self.x
             self.ys = self.target[1] - self.y
-            self.norm = math.sqrt((xs**2 + ys**2))
+            self.norm = math.sqrt((self.xs**2 + self.ys**2))
             self.unit = self.xs/self.norm, self.ys/self.norm
 
             # create pixel scaled velocity
             self.vel_x = int(self.unit[0] * Guerrilla.MAX_SPEED)
             self.vel_y = int(self.unit[1] * Guerrilla.MAX_SPEED)
 
-            # store old position
-            self.old_x, self.old_y = self.x, self.y
-
+            print(self.target)
+            print(self.vel_x)
+            print(self.vel_y)
+            print('\n')
             # check move for collisions
-            self.x += self.vel_x
-            self.y += self.vel_y
+            self.rect = self.rect.move(self.vel_x, self.vel_y)
             self.army_collisions = pygame.sprite.spritecollide(self, army_group, False)
 
             # if there are collisions, do not move
             if len(self.army_collisions) > 0:
-                self.x = self.old_x
-                self.y = self.old_y
+                self.rect = self.rect.move(-self.vel_x, -self.vel_y)
+            else:
+                self.x += self.vel_x
+                self.y += self.vel_y
 
         # attacking
-        self.army_collisions = pygame.sprite.spritecollide(self, army_group, False, collided=collide_circle_ratio(Guerrilla.ATTACK_RADIUS)) #??
-        for army in self.army_collisions:
-            army.communism -= Guerrilla.ATTACK_STRENGTH
+        self.army_collisions = pygame.sprite.spritecollide(self, army_group, False, pygame.sprite.collide_circle_ratio(Guerrilla.ATTACK_RADIUS)) #??
+        if len(self.army_collisions) > 0:
+            self.closest = [0, math.sqrt(((self.army_collisions[0].x * Army.DIM)**2)+((self.army_collisions[0].y * Army.DIM)**2))]
+            for i, army in enumerate(self.army_collisions):
+                # identify closest army unit
+                distance = math.sqrt(((self.army_collisions[i].x * Army.DIM)**2)+((self.army_collisions[i].y * Army.DIM)**2))
+                if distance > self.closest[1]:
+                    self.closest = [i, distance]
+
+            closest_army = self.army_collisions[self.closest[0]]
+            closest_army.communism -= Guerrilla.ATTACK_STRENGTH
+            # if we lowered health to 0 or below, delete this instance of army
+            if closest_army.communism <= 0:
+                del Army.instances[f'{closest_army.x},{closest_army.y}']
+                Army.group.remove(closest_army)
+            
 
 class Generator(pygame.sprite.Sprite):
-    self.group = pygame.sprite.group()  #??
-    self.TRIGGER = 4 # number of guerrillas to trigger soviets
-    self.DETECTION = 200 # detection radius for soviet reinforcements
-    self.WAVE = 2000 # milliseconds
+    group = pygame.sprite.Group()  #??
+    TRIGGER = 4 # number of guerrillas to trigger soviets
+    DETECTION = 200 # detection radius for soviet reinforcements
+    WAVE = 2000 # milliseconds
+    RATIO = 1.5
 
     def __init__(self, x, y, rate):
         super().__init__()
@@ -208,32 +302,36 @@ class Generator(pygame.sprite.Sprite):
         self.x, self.y = x, y
         self.BASE_RATE = rate
         self.rate = self.BASE_RATE 
-        self.ratio = 1.0
         self.image = pygame.Surface([32, 32])
         self.image.fill ((0, 0, 0))
-        Generator.group.add(self)
+
+        # Fetch rectangle object with dimensions of image
+        # Update object position by setting rect.x and rect.y
+        self.rect = self.image.get_rect()
+        self.rect.topleft = [x, y]
+
 
     def update(self, army_group, guerrilla_group):
         super().update()
 
         # identify army objects within radius
-        self.army_collisions = pygame.sprite.spritecollide(self, army_group, False, collided=collide_circle_ratio(self.ratio)) #??
+        self.army_collisions = pygame.sprite.spritecollide(self, army_group, False, pygame.sprite.collide_circle_ratio(Generator.RATIO)) #??
         # increase communism values
         for army in self.army_collisions:
             army.communism += self.rate
 
         self.rate = self.BASE_RATE
         # check if guerrillas within radius
-        self.guerrilla_collisions = pygame.sprite.spritecollide(self, guerrilla_group, False, collided=collide_circle_ratio(Generator.DETECTION))
-        if len(guerrilla_collisions) >= Generator.TRIGGER:
-            for guerrilla in guerrilla_collisions:
-                self.ally_collisions = pygame.sprite.spritecollide(self, guerrilla_group, False, collided=collide_circle_ratio(Generator.DETECTION/2))
+        self.guerrilla_collisions = pygame.sprite.spritecollide(self, guerrilla_group, False, pygame.sprite.collide_circle_ratio(Generator.DETECTION))
+        if len(self.guerrilla_collisions) >= Generator.TRIGGER:
+            for guerrilla in self.guerrilla_collisions:
+                self.ally_collisions = pygame.sprite.spritecollide(self, guerrilla_group, False, pygame.sprite.collide_circle_ratio(Generator.DETECTION/2))
                 if len(self.ally_collision) >= Generator.TRIGGER:
                     # send soviet reinforcements
                     self.rate *= 5
             
 class Prison(pygame.sprite.Sprite):
-    self.group = pygame.sprite.group()  #??
+    group = pygame.sprite.Group()  #??
 
     def __init__(self, x, y):
         super().__init__()
@@ -241,7 +339,12 @@ class Prison(pygame.sprite.Sprite):
         self.image = pygame.Surface([32, 32])
 
         self.image.fill ((0, 0, 255))
-        Prison.group.add(self)
+
+        # Fetch rectangle object with dimensions of image
+        # Update object position by setting rect.x and rect.y
+        self.rect = self.image.get_rect()
+        self.rect.topleft = [x, y]
+
 
 if __name__ == "__main__":
     game = App()
