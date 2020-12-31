@@ -23,12 +23,12 @@ class App:
         pygame.init()
         self.running = True
 
-        self.size = self.width, self.height = 480, 270
+        self.size = self.width, self.height = 1024, 768
 
         # actual display
         self.screen = pygame.display.set_mode(self.size)
         # surface everything is blitted to
-        self.display = pygame.Surface((480, 270))
+        self.display = pygame.Surface((1024, 768))
 
         self.clock = pygame.time.Clock()
         self.dragging = None
@@ -43,10 +43,15 @@ class App:
                 # if mouse intersects with guerrilla
                 if guerrilla.rect.collidepoint(event.pos):
                    self.dragging = guerrilla
+                   pygame.mouse.set_visible(False)
+                   Target.group.add(Target(event.pos))
+
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if self.dragging is not None:
                 self.dragging.target = event.pos
                 self.dragging = None
+                Target.group.sprite.destroy()
+                pygame.mouse.set_visible(True)
         elif event.type == pygame.MOUSEMOTION:
             pass
 
@@ -54,6 +59,7 @@ class App:
         # check difference between current time and starting time
         # determine probability based on time played
         # check if something happens (agent, generator, prison ...)
+        Target.group.update(pygame.mouse.get_pos())
         Guerrilla.group.update(Army.group, Generator.group, Prison.group)
 
         if self.generator_action >= Generator.WAVE:
@@ -74,6 +80,7 @@ class App:
         Prison.group.draw(self.display)
         Generator.group.draw(self.display)
         Guerrilla.group.draw(self.display)
+        Target.group.draw(self.display)
 
         # blit virtual screen to actual display
         self.screen.blit(self.display, (0, 0))
@@ -195,20 +202,14 @@ class Army(pygame.sprite.Sprite):
             self.image.set_alpha((self.communism / 100) * 255)
         
 class Agent(pygame.sprite.Sprite):
-    pass
-
-class Guerrilla(pygame.sprite.Sprite):
     group = pygame.sprite.Group()  #??
     MAX_SPEED = 2
-    ATTACK_RADIUS = 1.5
-    ATTACK_STRENGTH = 1 
-    TOLERANCE = MAX_SPEED * 1
-
+    DETECTION_RADIUS = 5
     def __init__(self, x, y):
         super().__init__()
 
         self.image = pygame.Surface([32, 32])
-        self.image.fill ((0, 255, 0))
+        self.image.fill ((256, 165, 0))
 
         self.x, self.y = x, y
         self.vel_x, self.vel_y = 0, 0
@@ -218,6 +219,63 @@ class Guerrilla(pygame.sprite.Sprite):
         # Update object position by setting rect.x and rect.y
         self.rect = self.image.get_rect()
         self.rect.topleft = [x, y]
+
+    def update(self, guerrilla_group):
+        super().update()
+
+        # check for collisions with guerillas and destroy them
+        self.guerrilla_collisions = pygame.sprite.spritecollide(self, guerrilla_group, True)
+
+        # find closest target
+        #for guerrilla in guerrilla_group):
+        
+        
+class Target(pygame.sprite.Sprite):
+    group = pygame.sprite.GroupSingle()
+
+    def __init__(self, mouse_pos):
+        super().__init__()
+
+        self.image = pygame.Surface([Guerrilla.DIM, Guerrilla.DIM])
+        self.image.fill ((0, 255, 0))
+        self.image.set_alpha(0.6 * 255)
+
+        self.x, self.y = mouse_pos
+        
+        self.rect = self.image.get_rect()
+        self.rect.center = list(mouse_pos)
+
+    def destroy(self):
+        Target.group.remove(Target.group.sprite)
+
+    def update(self, mouse_pos):
+        super().update()
+
+        self.rect = self.rect.move(mouse_pos[0] - self.x, mouse_pos[1] - self.y)
+        self.x, self.y = mouse_pos
+
+class Guerrilla(pygame.sprite.Sprite):
+    group = pygame.sprite.Group()
+    MAX_SPEED = 2
+    ATTACK_RADIUS = 1.5
+    ATTACK_STRENGTH = 1 
+    TOLERANCE = MAX_SPEED * 0.25
+    DIM = 32
+
+    def __init__(self, x, y):
+        super().__init__()
+
+        self.image = pygame.Surface([Guerrilla.DIM, Guerrilla.DIM])
+        self.image.fill ((0, 255, 0))
+
+        self.x, self.y = x, y
+        self.vel_x, self.vel_y = 0, 0
+        self.target = self.x, self.y
+
+        # Fetch rectangle object with dimensions of image
+        # Update object position by setting rect.x and rect.y
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
 
 #        Guerrilla.group.add(self)
 
@@ -256,10 +314,6 @@ class Guerrilla(pygame.sprite.Sprite):
             self.vel_x = int(self.unit[0] * Guerrilla.MAX_SPEED)
             self.vel_y = int(self.unit[1] * Guerrilla.MAX_SPEED)
 
-            print(self.target)
-            print(self.vel_x)
-            print(self.vel_y)
-            print('\n')
             # check move for collisions
             self.rect = self.rect.move(self.vel_x, self.vel_y)
             self.army_collisions = pygame.sprite.spritecollide(self, army_group, False)
@@ -343,7 +397,7 @@ class Prison(pygame.sprite.Sprite):
         # Fetch rectangle object with dimensions of image
         # Update object position by setting rect.x and rect.y
         self.rect = self.image.get_rect()
-        self.rect.topleft = [x, y]
+        self.rect.center = [x, y]
 
 
 if __name__ == "__main__":
