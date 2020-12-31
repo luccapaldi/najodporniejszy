@@ -74,7 +74,8 @@ class App:
 
     def on_render(self):
         # blank screen for new drawing
-        self.display.fill((255, 255, 255))
+        self.display.blit(self.poland, (0, 0))
+        #self.display.fill((255, 255, 255))
         # render each sprite
         Army.group.draw(self.display)
         Prison.group.draw(self.display)
@@ -90,17 +91,19 @@ class App:
         pygame.quit()
 
     def on_run(self):
+        # load map
+        self.poland = pygame.image.load("assets/sprites/poland.png")
+
         # record time that game starts
         # initialize all the sprites
         self.generator_action = 0
         self.army_action = 0
 
-        Army.group.add(Army(1, 1, 90))
-        Army.group.add(Army(1, 2, 90))
-        Army.group.add(Army(2, 1, 90))
-        Army.group.add(Army(2, 2, 90))
-        Army.group.add(Army(3, 5, 90))
-        Generator.group.add(Generator(0, 0, 30))
+        Army.group.add(Army(100, 50, 90))
+        Army.group.add(Army(101, 50, 90))
+        Army.group.add(Army(100, 51, 90))
+        Army.group.add(Army(101, 51, 90))
+        Generator.group.add(Generator(750, 350, 30))
         Guerrilla.group.add(Guerrilla(100, 50))
         Prison.group.add(Prison(170,170))
 
@@ -118,7 +121,7 @@ class Army(pygame.sprite.Sprite):
     instances = {}
     CUTOFF = 30  # lowest transparency
     SPREADRATE = 20 
-    STEP = 1000 # milliseconds
+    STEP = 250 # milliseconds
     DIM = 8
 
     def __init__(self, x, y, communism):
