@@ -99,10 +99,10 @@ class App:
         self.generator_action = 0
         self.army_action = 0
 
-        Army.group.add(Army(100, 50, 90))
-        Army.group.add(Army(101, 50, 90))
-        Army.group.add(Army(100, 51, 90))
-        Army.group.add(Army(101, 51, 90))
+        Army.group.add(Army(50, 25, 90))
+        Army.group.add(Army(51, 25, 90))
+        Army.group.add(Army(50, 26, 90))
+        Army.group.add(Army(51, 26, 90))
         Generator.group.add(Generator(750, 350, 30))
         Guerrilla.group.add(Guerrilla(100, 50))
         Prison.group.add(Prison(170,170))
@@ -122,7 +122,7 @@ class Army(pygame.sprite.Sprite):
     CUTOFF = 30  # lowest transparency
     SPREADRATE = 20 
     STEP = 250 # milliseconds
-    DIM = 8
+    DIM = 16
 
     def __init__(self, x, y, communism):
         """Communism must start between 30 and 90."""
