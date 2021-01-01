@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """
-1. background
 2. collisions with walls
 3. make the map
 4. sprite work
@@ -61,6 +60,7 @@ class App:
         # check if something happens (agent, generator, prison ...)
         Target.group.update(pygame.mouse.get_pos())
         Guerrilla.group.update(Army.group, Generator.group, Prison.group)
+        Boundary.update()
 
         if self.generator_action >= Generator.WAVE:
             Generator.group.update(Army.group, Guerrilla.group)
@@ -77,7 +77,7 @@ class App:
         self.display.blit(self.poland, (0, 0))
         #self.display.fill((255, 255, 255))
         # render each sprite
-        Boundary.group.draw(self.display)
+        #Boundary.group.draw(self.display)
         Army.group.draw(self.display)
         Prison.group.draw(self.display)
         Generator.group.draw(self.display)
@@ -106,7 +106,13 @@ class App:
         Army.group.add(Army(51, 25, 90))
         Army.group.add(Army(50, 26, 90))
         Army.group.add(Army(51, 26, 90))
+        Army.group.add(Army(55, 25, 90))
+        Army.group.add(Army(56, 25, 90))
+        Army.group.add(Army(50, 26, 90))
+        Army.group.add(Army(56, 26, 90))
+        Army.group.add(Army(int((912/16)-1), int((624/16)-1), 90))
         Generator.group.add(Generator(750, 350, 30))
+        Generator.group.add(Generator(int(912-(5*16)), int(624-(6*16)), 30))
         Guerrilla.group.add(Guerrilla(100, 50))
         Prison.group.add(Prison(170,170))
 
@@ -159,48 +165,45 @@ class Army(pygame.sprite.Sprite):
 
     def update(self):
         super().update()
-        # Check communism level
-        if self.communism <= 0:
-            self.destroy()
-        else:
-            # determine communism available to spread
-            self.spread = self.communism - self.CUTOFF
-            if self.spread > Army.SPREADRATE:
-                self.spread = Army.SPREADRATE
-            if self.spread > 0:
-                # check neighbors
-                self.keys = [f'{self.x},{self.y + 1}',
-                             f'{self.x},{self.y - 1}',
-                             f'{self.x + 1},{self.y}',
-                             f'{self.x - 1},{self.y}',
-                             f'{self.x - 1},{self.y + 1}',
-                             f'{self.x - 1},{self.y - 1}',
-                             f'{self.x + 1},{self.y + 1}',
-                             f'{self.x + 1},{self.y - 1}']
-                
-                # delete invalid objects
-                for key in self.keys:
-                    if key in Army.instances and Army.instances[key].communism >= self.communism:
-                        self.keys.remove(key)
-                    # also remove cubes that would be on a boundary
-                    elif key in Boundary.instances:
-                        self.keys.remove(key)
+        # determine communism available to spread
+        self.spread = self.communism - self.CUTOFF
+        if self.spread > Army.SPREADRATE:
+            self.spread = Army.SPREADRATE
+        if self.spread > 0:
+            # check neighbors
+            self.keys = [f'{self.x},{self.y + 1}',
+                         f'{self.x},{self.y - 1}',
+                         f'{self.x + 1},{self.y}',
+                         f'{self.x - 1},{self.y}',
+                         f'{self.x - 1},{self.y + 1}',
+                         f'{self.x - 1},{self.y - 1}',
+                         f'{self.x + 1},{self.y + 1}',
+                         f'{self.x + 1},{self.y - 1}']
+            
+            # delete invalid objects
+            for key in self.keys:
+                if key in Army.instances and Army.instances[key].communism >= self.communism:
+                    self.keys.remove(key)
+                # also remove cubes that would be on a boundary
+                # TODO for some reason this method fails to work
+                elif key in Boundary.instances:
+                    self.keys.remove(key)
 
-                # spread communism to valid objects
-                # can only spread to things with communism less than self
-                for key in self.keys:
-                    if key not in Army.instances:
-                        # decompose key
-                        self.xs, self.ys = key.split(',')
-                        # instantiate
-                        Army.group.add(Army(int(self.xs), int(self.ys), int(self.spread/len(self.keys))))
-                        # remove some communism from self
-                        self.communism -= int(self.spread/len(self.keys))
-                        # donate communism
-                    else:
-                        Army.instances[key].communism += int(self.spread/len(self.keys))
-                        # remove some communism from self
-                        self.communism -= int(self.spread/len(self.keys))
+            # spread communism to valid objects
+            # can only spread to things with communism less than self
+            for key in self.keys:
+                if key not in Army.instances:
+                    # decompose key
+                    self.xs, self.ys = key.split(',')
+                    # instantiate
+                    Army.group.add(Army(int(self.xs), int(self.ys), int(self.spread/len(self.keys))))
+                    # remove some communism from self
+                    self.communism -= int(self.spread/len(self.keys))
+                    # donate communism
+                else:
+                    Army.instances[key].communism += int(self.spread/len(self.keys))
+                    # remove some communism from self
+                    self.communism -= int(self.spread/len(self.keys))
 
         # Update alpha value to represent communism level
         if self.communism < 30:
@@ -210,6 +213,13 @@ class Army(pygame.sprite.Sprite):
         else:
             self.image.set_alpha((self.communism / 100) * 255)
         
+        # Check communism level
+        if self.communism <= 0:
+            self.destroy()
+        # TODO this is a hack to fix boundary problem but it creates flickering at edges
+        elif f'{self.x},{self.y}' in Boundary.instances:
+            self.destroy()
+
 class Agent(pygame.sprite.Sprite):
     group = pygame.sprite.Group()  #??
     MAX_SPEED = 2
@@ -416,21 +426,29 @@ class Boundary(pygame.sprite.Sprite):
         super().__init__()
 
         # debug version
-        self.image = pygame.Surface([16, 16])
-        self.image.fill ((0, 0, 0))
-        self.rect = self.image.get_rect()
-        self.rect.topleft = [x, y]
+        #self.image = pygame.Surface([16, 16])
+        #self.image.fill ((0, 0, 0))
+        #self.rect = self.image.get_rect()
+        #self.rect.topleft = [x, y]
 
-        #self.rect = pygame.Rect(x, y, 16, 16)
-    @staticmethod
-    def set_boundary(filename):
+        self.rect = pygame.Rect(x, y, 16, 16)
+
+    @classmethod
+    def set_boundary(cls, filename):
         with open(filename) as csv_file:
             reader = csv.reader(csv_file, delimiter=',')
             for row in reader:
-                Boundary.group.add(Boundary(int(row[0]), int(row[1])))
-                Boundary.instances.append(f"{int(int(row[0])/16)},{int(int(row[1])/16)}")
+                cls.group.add(Boundary(int(row[0]), int(row[1])))
+                cls.instances.append(f"{int(int(row[0])/16)},{int(int(row[1])/16)}")
+
+    @classmethod
+    def update(cls):
+        # intentionally not inheriting from the parent
+        # create list of collisions with Guerrillas
+        collided = pygame.sprite.groupcollide(Guerrilla.group, cls.group, False, False)
+        for guerrilla in collided:
+            guerrilla.target = guerrilla.x, guerrilla.y
 
 if __name__ == "__main__":
     game = App()
     game.on_run()
-
