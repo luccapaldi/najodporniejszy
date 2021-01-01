@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 1. background
 2. collisions with walls
@@ -17,6 +16,7 @@
 
 import pygame
 import math
+import csv
 
 class App:
     def __init__(self):
@@ -77,6 +77,7 @@ class App:
         self.display.blit(self.poland, (0, 0))
         #self.display.fill((255, 255, 255))
         # render each sprite
+        Boundary.group.draw(self.display)
         Army.group.draw(self.display)
         Prison.group.draw(self.display)
         Generator.group.draw(self.display)
@@ -93,6 +94,8 @@ class App:
     def on_run(self):
         # load map
         self.poland = pygame.image.load("assets/sprites/poland.png")
+        # load coordinates of boundary tiles and create them as sprites
+        Boundary.set_boundary("assets/boundary.txt")
 
         # record time that game starts
         # initialize all the sprites
@@ -178,6 +181,9 @@ class Army(pygame.sprite.Sprite):
                 # delete invalid objects
                 for key in self.keys:
                     if key in Army.instances and Army.instances[key].communism >= self.communism:
+                        self.keys.remove(key)
+                    # also remove cubes that would be on a boundary
+                    elif key in Boundary.instances:
                         self.keys.remove(key)
 
                 # spread communism to valid objects
@@ -388,7 +394,7 @@ class Generator(pygame.sprite.Sprite):
                     self.rate *= 5
             
 class Prison(pygame.sprite.Sprite):
-    group = pygame.sprite.Group()  #??
+    group = pygame.sprite.Group()
 
     def __init__(self, x, y):
         super().__init__()
@@ -403,107 +409,26 @@ class Prison(pygame.sprite.Sprite):
         self.rect.center = [x, y]
 
 class Boundary(pygame.sprite.Sprite):
-    COORDS = [[912, 624],
-              [896, 624],
-              [896, 640],
-              [880, 640],
-              [880, 656],
-              [864, 656],
-              [864, 672],
-              [880, 672],
-              [880, 688],
-              [880, 704],
-              [880, 720],
-              [864, 720],
-              [848, 720],
-              [832, 720],
-              [832, 704],
-              [816, 704],
-              [816, 688],
-              [800, 688],
-              [784, 688],
-              [768, 688],
-              [752, 688],
-              [736, 688],
-              [720, 688],
-              [704, 688],
-              [688, 688],
-              [688, 704],
-              [672, 704],
-              [656, 704],
-              [640, 704],
-              [640, 688],
-              [640, 672],
-              [624, 672],
-              [608, 672],
-              [592, 672],
-              [576, 672],
-              [576, 656],
-              [560, 656],
-              [560, 640],
-              [544, 640],
-              [544, 624],
-              [528, 624],
-              [512, 624],
-              [512, 608],
-              [496, 608],
-              [480, 608],
-              [464, 608],
-              [464, 592],
-              [464, 576],
-              [448, 576],
-              [432, 576],
-              [432, 560],
-              [416, 560],
-              [416, 576],
-              [416, 592],
-              [400, 592],
-              [384, 592],
-              [368, 592],
-              [368, 576],
-              [368, 560],
-              [352, 560],
-              [352, 544],
-              [352, 528],
-              [336, 528],
-              [336, 512],
-              [320, 512],
-              [304, 512],
-              [304, 496],
-              [288, 496],
-              [272, 496],
-              [272, 480],
-              [256, 480],
-              [256, 464],
-              [256, 448],
-              [256, 432],
-              [272, 432],
-              [272, 416],
-              [256, 416],
-              [256, 400],
-              [256, 384],
-              [256, 368],
-              [256, 352],
-              [256, 336],
-              [256, 320],
-              [256, 304],
-              [256, 288],
-              [256, 272],
-              [240, 272],
-              [240, 256],
-              [240, 240],
-              [240, 224],
-              [240, 208],
-              [256, 208],
-              [256, 192],
-              [256, 176],
-              [240, 176],
-              [240, 160],
-              [240, 144],
-              
-
-    def __init__(self):
+    group = pygame.sprite.Group()
+    instances = []
+    
+    def __init__(self, x, y):
         super().__init__()
+
+        # debug version
+        self.image = pygame.Surface([16, 16])
+        self.image.fill ((0, 0, 0))
+        self.rect = self.image.get_rect()
+        self.rect.topleft = [x, y]
+
+        #self.rect = pygame.Rect(x, y, 16, 16)
+    @staticmethod
+    def set_boundary(filename):
+        with open(filename) as csv_file:
+            reader = csv.reader(csv_file, delimiter=',')
+            for row in reader:
+                Boundary.group.add(Boundary(int(row[0]), int(row[1])))
+                Boundary.instances.append(f"{int(int(row[0])/16)},{int(int(row[1])/16)}")
 
 if __name__ == "__main__":
     game = App()
