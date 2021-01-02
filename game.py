@@ -132,6 +132,7 @@ class App:
         Prison.group.add(Prison(667,604))
         Prison.group.add(Prison(903,233))
         Prison.group.add(Prison(866,461))
+        Prison.group.add(Prison(475,225))
 
         while self.running:
             for event in pygame.event.get():
@@ -410,8 +411,9 @@ class Generator(pygame.sprite.Sprite):
         self.BASE_RATE = rate
         self.rate = self.BASE_RATE
         self.cooldown = 0
-        self.image = pygame.Surface([16, 16])
-        self.image.fill ((0, 0, 0))
+        #self.image = pygame.Surface([16, 16])
+        self.image = pygame.image.load("assets/sprites/generator2.png")
+        #self.image.fill ((0, 0, 0))
 
         # Fetch rectangle object with dimensions of image
         # Update object position by setting rect.x and rect.y
@@ -437,7 +439,6 @@ class Generator(pygame.sprite.Sprite):
         # check if guerrillas within radius
         self.guerrilla_collisions = pygame.sprite.spritecollide(self, guerrilla_group, False, pygame.sprite.collide_circle_ratio(Generator.DETECTION))
         if len(self.guerrilla_collisions) >= Generator.TRIGGER:
-            print(str(self.cooldown))
             for guerrilla in self.guerrilla_collisions:
                 self.ally_collisions = pygame.sprite.spritecollide(self, guerrilla_group, False, pygame.sprite.collide_circle_ratio(Generator.DETECTION/2))
                 # check if enough guerrillas are present to trigger soviet reinforcements
