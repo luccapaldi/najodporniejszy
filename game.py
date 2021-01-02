@@ -40,7 +40,7 @@ class App:
 
     def on_event(self, event):
         if event.type == pygame.QUIT:
-            self.running = False
+            pygame.quit()
         # left click
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             # check if we clicked on Guerrilla
@@ -61,6 +61,9 @@ class App:
                 pygame.mixer.Channel(0).play(self.movement)
         elif event.type == pygame.MOUSEMOTION:
             pass
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_r:
+                self.running = False
 
     def on_loop(self):
         # check difference between current time and starting time
@@ -85,6 +88,7 @@ class App:
         self.display.fill((240, 240, 240))
         self.display.blit(self.poland, (0, 0))
         self.display.blit(self.title, (16, 16))
+        self.display.blit(self.difficulty, (16, 675))
         #self.display.fill((255, 255, 255))
         # render each sprite
         #Boundary.group.draw(self.display)
@@ -99,7 +103,14 @@ class App:
         pygame.display.update()
 
     def on_cleanup(self):
-        pygame.quit()
+        # delete all prior sprites
+        Generator.group.empty()
+        Army.group.empty()
+        Guerrilla.group.empty()
+        Prison.group.empty()
+        Target.group.empty()
+        self.running = True
+        self.on_run()
 
     def on_run(self):
         # load map
@@ -110,6 +121,7 @@ class App:
         pygame.mixer.Channel(1).play(self.background_music, loops=-1)
         # load title sprite
         self.title = pygame.image.load("assets/sprites/title.png")
+        self.difficulty = pygame.image.load("assets/sprites/difficulty.png")
 
         # record time that game starts
         # initialize all the sprites
@@ -238,6 +250,8 @@ class Army(pygame.sprite.Sprite):
         elif f'{self.x},{self.y}' in Boundary.instances:
             self.destroy()
 
+        self.image.fill((218, 10, 10))
+
 class Agent(pygame.sprite.Sprite):
     group = pygame.sprite.Group()  #??
     MAX_SPEED = 2
@@ -273,8 +287,9 @@ class Target(pygame.sprite.Sprite):
     def __init__(self, mouse_pos):
         super().__init__()
 
-        self.image = pygame.Surface([Guerrilla.DIM, Guerrilla.DIM])
-        self.image.fill ((0, 255, 0))
+        #self.image = pygame.Surface([Guerrilla.DIM, Guerrilla.DIM])
+        #self.image.fill ((0, 255, 0))
+        self.image = pygame.image.load("assets/sprites/target.png")
         self.image.set_alpha(0.6 * 255)
 
         self.x, self.y = mouse_pos
@@ -310,8 +325,9 @@ class Guerrilla(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
 
-        self.image = pygame.Surface([Guerrilla.DIM, Guerrilla.DIM])
-        self.image.fill ((0, 255, 0))
+        #self.image = pygame.Surface([Guerrilla.DIM, Guerrilla.DIM])
+        #self.image.fill ((0, 255, 0))
+        self.image = pygame.image.load("assets/sprites/guerrilla.png")
 
         self.x, self.y = x, y
         self.vel_x, self.vel_y = 0, 0
@@ -385,6 +401,7 @@ class Guerrilla(pygame.sprite.Sprite):
 
             closest_army = self.army_collisions[self.closest[0]]
             closest_army.communism -= Guerrilla.ATTACK_STRENGTH
+            closest_army.image.fill ((192, 192, 192))
             # if we lowered health to 0 or below, delete this instance of army
             if closest_army.communism <= 0:
                 del Army.instances[f'{closest_army.x},{closest_army.y}']
@@ -412,8 +429,8 @@ class Generator(pygame.sprite.Sprite):
         self.rate = self.BASE_RATE
         self.cooldown = 0
         #self.image = pygame.Surface([16, 16])
-        self.image = pygame.image.load("assets/sprites/generator2.png")
         #self.image.fill ((0, 0, 0))
+        self.image = pygame.image.load("assets/sprites/generator.png")
 
         # Fetch rectangle object with dimensions of image
         # Update object position by setting rect.x and rect.y
@@ -465,9 +482,9 @@ class Prison(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.x, self.y = x, y
-        self.image = pygame.Surface([16, 16])
-
-        self.image.fill ((0, 0, 255))
+        #self.image = pygame.Surface([16, 16])
+        #self.image.fill ((0, 0, 255))
+        self.image = pygame.image.load("assets/sprites/prison.png")
 
         # Fetch rectangle object with dimensions of image
         # Update object position by setting rect.x and rect.y
