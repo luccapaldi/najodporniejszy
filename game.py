@@ -18,10 +18,11 @@ import math
 import csv
 
 class App:
+    MAX_RATE = 40 # max spread rate for generator initialization
     pygame.mixer.init()
     movement = pygame.mixer.Sound("assets/music/movement.wav")
     background_music = pygame.mixer.Sound("assets/music/Varshavjanka.wav")
-    movement.set_volume(0.3)
+    movement.set_volume(0.05)
     background_music.set_volume(0.3)
  
     def __init__(self):
@@ -90,6 +91,7 @@ class App:
         self.display.blit(self.title, (16, 16))
         self.display.blit(self.difficulty, (16, 675))
         #self.display.fill((255, 255, 255))
+
         # render each sprite
         #Boundary.group.draw(self.display)
         Army.group.draw(self.display)
@@ -115,10 +117,13 @@ class App:
     def on_run(self):
         # load map
         self.poland = pygame.image.load("assets/sprites/poland.png")
+
         # load coordinates of boundary tiles and create them as sprites
         Boundary.set_boundary("assets/boundary.txt")
+
         # play background music
         pygame.mixer.Channel(1).play(self.background_music, loops=-1)
+
         # load title sprite
         self.title = pygame.image.load("assets/sprites/title.png")
         self.difficulty = pygame.image.load("assets/sprites/difficulty.png")
@@ -130,17 +135,25 @@ class App:
 
         #Generator.group.add(Generator(446, 320, 30))
         #Army.group.add(Army(int(446/16), int(320/16), 90))
-        Generator.group.add(Generator(633, 403, 30))
+        Generator.group.add(Generator(633, 403, 0.65*self.MAX_RATE))         # bottom middle
         Army.group.add(Army(int(633/16), int(403/16), 90))
-        Generator.group.add(Generator(748, 346, 30))
+
+        Generator.group.add(Generator(748, 346, 1.0*self.MAX_RATE))          # bottom right
         Army.group.add(Army(int(748/16), int(346/16), 90))
-        Generator.group.add(Generator(582, 92, 30))
+
+        Generator.group.add(Generator(582, 92, 0.65*self.MAX_RATE))          # top right
         Army.group.add(Army(int(582/16), int(92/16)+1, 90))
-        Generator.group.add(Generator(273, 184, 30))
+
+        Generator.group.add(Generator(273, 184, 0.65*self.MAX_RATE))         # top left
         Army.group.add(Army(int(273/16)+1, int(184/16), 90))
-        Generator.group.add(Generator(453, 472, 30))
+
+        Generator.group.add(Generator(453, 472, 0.8*self.MAX_RATE))          # bottom left
         Army.group.add(Army(int(453/16), int(472/16), 90))
-        Guerrilla.group.add(Guerrilla(500, 500))
+
+        Army.group.add(Army(int(540/16), int(440/16), 90))   # extra for bottom gap
+        Army.group.add(Army(int(700/16), int(200/16), 90))
+        Guerrilla.group.add(Guerrilla(560, 550))
+
         Prison.group.add(Prison(667,604))
         Prison.group.add(Prison(903,233))
         Prison.group.add(Prison(866,461))
@@ -308,9 +321,9 @@ class Target(pygame.sprite.Sprite):
 
 class Guerrilla(pygame.sprite.Sprite):
     group = pygame.sprite.Group()
-    MAX_SPEED = 2
+    MAX_SPEED = 1.5  # lowest bug-free speed
     ATTACK_RADIUS = 1.5
-    ATTACK_STRENGTH = 1 
+    ATTACK_STRENGTH = 5
     TOLERANCE = MAX_SPEED * 0.25
     DIM = 16
 
@@ -411,8 +424,8 @@ class Guerrilla(pygame.sprite.Sprite):
 
 class Generator(pygame.sprite.Sprite):
     group = pygame.sprite.Group()  #??
-    TRIGGER = 1 # number of guerrillas to trigger soviets
-    DETECTION = 200 # detection radius for soviet reinforcements
+    TRIGGER = 3 # number of guerrillas to trigger soviets
+    DETECTION = 50 # detection radius for soviet reinforcements
     WAVE = 2000 # [ms] frequency that update loop runs
     RATIO = 1.5
     COOLDOWN = 60000 # [ms] cooldown on soviet surge
@@ -427,7 +440,7 @@ class Generator(pygame.sprite.Sprite):
         self.x, self.y = x, y
         self.BASE_RATE = rate
         self.rate = self.BASE_RATE
-        self.cooldown = 0
+        self.cooldown = self.COOLDOWN 
         #self.image = pygame.Surface([16, 16])
         #self.image.fill ((0, 0, 0))
         self.image = pygame.image.load("assets/sprites/generator.png")
