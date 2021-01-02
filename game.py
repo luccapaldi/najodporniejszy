@@ -18,6 +18,12 @@ import math
 import csv
 
 class App:
+    pygame.mixer.init()
+    movement = pygame.mixer.Sound("assets/music/movement.wav")
+    background_music = pygame.mixer.Sound("assets/music/Varshavjanka.wav")
+    movement.set_volume(0.3)
+    background_music.set_volume(0.5)
+ 
     def __init__(self):
         pygame.init()
         self.running = True
@@ -51,6 +57,8 @@ class App:
                 self.dragging = None
                 Target.group.sprite.destroy()
                 pygame.mouse.set_visible(True)
+                # play movement audio
+                pygame.mixer.Channel(0).play(self.movement)
         elif event.type == pygame.MOUSEMOTION:
             pass
 
@@ -98,6 +106,8 @@ class App:
         self.poland = pygame.image.load("assets/sprites/poland.png")
         # load coordinates of boundary tiles and create them as sprites
         Boundary.set_boundary("assets/boundary.txt")
+        # play background music
+        pygame.mixer.Channel(1).play(self.background_music, loops=-1)
         # load title sprite
         self.title = pygame.image.load("assets/sprites/title.png")
 
@@ -117,7 +127,7 @@ class App:
         Army.group.add(Army(int((912/16)-1), int((624/16)-1), 90))
         Generator.group.add(Generator(750, 350, 30))
         Generator.group.add(Generator(int(912-(5*16)), int(624-(6*16)), 30))
-        Guerrilla.group.add(Guerrilla(100, 50))
+        Guerrilla.group.add(Guerrilla(500, 500))
         Prison.group.add(Prison(170,170))
 
         while self.running:
@@ -285,6 +295,14 @@ class Guerrilla(pygame.sprite.Sprite):
     TOLERANCE = MAX_SPEED * 0.25
     DIM = 16
 
+    pygame.mixer.init()
+    army_death = pygame.mixer.Sound("assets/music/kill2.wav")
+    guerrilla_death = pygame.mixer.Sound("assets/music/guerrilla_death.wav")
+    free_guerrilla = pygame.mixer.Sound("assets/music/free_guerrilla.wav")
+    army_death.set_volume(0.5)
+    guerrilla_death.set_volume(0.8)
+    free_guerrilla.set_volume(0.8)
+
     def __init__(self, x, y):
         super().__init__()
 
@@ -304,6 +322,7 @@ class Guerrilla(pygame.sprite.Sprite):
 
     def destroy(self):
         Guerrilla.group.remove(self)
+        pygame.mixer.Channel(2).play(self.guerrilla_death)
 
     def update(self, army_group, generator_group, prison_group):
         super().update()
@@ -322,6 +341,8 @@ class Guerrilla(pygame.sprite.Sprite):
         # add soldiers
         for prison in self.prison_collisions:
             Guerrilla.group.add(Guerrilla(prison.x, prison.y))
+            # play free guerrilla audio
+            pygame.mixer.Channel(3).play(self.free_guerrilla)
             # delete prison
             prison_group.remove(prison)
 
@@ -364,21 +385,28 @@ class Guerrilla(pygame.sprite.Sprite):
             if closest_army.communism <= 0:
                 del Army.instances[f'{closest_army.x},{closest_army.y}']
                 Army.group.remove(closest_army)
-            
+                # play army death audio
+                pygame.mixer.Channel(4).play(self.army_death)
 
 class Generator(pygame.sprite.Sprite):
     group = pygame.sprite.Group()  #??
-    TRIGGER = 4 # number of guerrillas to trigger soviets
+    TRIGGER = 1 # number of guerrillas to trigger soviets
     DETECTION = 200 # detection radius for soviet reinforcements
-    WAVE = 2000 # milliseconds
+    WAVE = 2000 # [ms] frequency that update loop runs
     RATIO = 1.5
+    COOLDOWN = 60000 # [ms] cooldown on soviet surge
+
+    pygame.mixer.init()
+    soviet_surge = pygame.mixer.Sound("assets/music/soviets.wav")
+    soviet_surge.set_volume(0.5)
 
     def __init__(self, x, y, rate):
         super().__init__()
 
         self.x, self.y = x, y
         self.BASE_RATE = rate
-        self.rate = self.BASE_RATE 
+        self.rate = self.BASE_RATE
+        self.cooldown = 0
         self.image = pygame.Surface([32, 32])
         self.image.fill ((0, 0, 0))
 
@@ -386,7 +414,6 @@ class Generator(pygame.sprite.Sprite):
         # Update object position by setting rect.x and rect.y
         self.rect = self.image.get_rect()
         self.rect.topleft = [x, y]
-
 
     def update(self, army_group, guerrilla_group):
         super().update()
@@ -397,16 +424,36 @@ class Generator(pygame.sprite.Sprite):
         for army in self.army_collisions:
             army.communism += self.rate
 
+        if self.rate > self.BASE_RATE:
+            # play soviet reinforcement sound
+            pygame.mixer.Channel(5).play(self.soviet_surge)
+        # reset rate
         self.rate = self.BASE_RATE
+
         # check if guerrillas within radius
         self.guerrilla_collisions = pygame.sprite.spritecollide(self, guerrilla_group, False, pygame.sprite.collide_circle_ratio(Generator.DETECTION))
         if len(self.guerrilla_collisions) >= Generator.TRIGGER:
+            print(str(self.cooldown))
             for guerrilla in self.guerrilla_collisions:
                 self.ally_collisions = pygame.sprite.spritecollide(self, guerrilla_group, False, pygame.sprite.collide_circle_ratio(Generator.DETECTION/2))
-                if len(self.ally_collision) >= Generator.TRIGGER:
-                    # send soviet reinforcements
-                    self.rate *= 5
-            
+                # check if enough guerrillas are present to trigger soviet reinforcements
+                if len(self.ally_collisions) >= Generator.TRIGGER:
+                    # check cooldown of soviet reinforcements
+                    if self.cooldown == 0:
+                        # send soviet reinforcements
+                        self.rate *= 5
+                        # play soviet reinforcement sound
+                        #pygame.mixer.Channel(5).play(self.soviet_surge)
+
+                        # reset cooldown
+                        self.cooldown = self.COOLDOWN
+                    # reduce cooldown by the time that has passed
+                    else:
+                        self.cooldown -= self.WAVE
+                        # account for case where (self.COOLDOWN % self.WAVE != 0)
+                        if self.cooldown < 0:
+                            self.cooldown = 0
+                    
 class Prison(pygame.sprite.Sprite):
     group = pygame.sprite.Group()
 
