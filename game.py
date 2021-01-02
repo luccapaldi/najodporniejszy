@@ -28,6 +28,7 @@ class App:
     def __init__(self):
         pygame.init()
         self.running = True
+        self.end = False
 
         self.size = self.width, self.height = 1024, 768
 
@@ -41,7 +42,9 @@ class App:
 
     def on_event(self, event):
         if event.type == pygame.QUIT:
-            pygame.quit()
+            self.running = False
+            self.end = True
+            #pygame.quit()
         # left click
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             # check if we clicked on Guerrilla
@@ -65,6 +68,10 @@ class App:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_r:
                 self.running = False
+            if event.key == pygame.K_q:
+                self.running = False
+                self.end = True
+                
 
     def on_loop(self):
         # check difference between current time and starting time
@@ -92,6 +99,19 @@ class App:
         self.display.blit(self.difficulty, (16, 675))
         #self.display.fill((255, 255, 255))
 
+        # draw borders around game window
+        self.border_horz = pygame.Surface([1024-16, 8])
+        self.border_vert = pygame.Surface([8, 768-16])
+        self.border_horz.fill((218, 10, 10))
+        self.border_vert.fill((218, 10, 10))
+        self.rect_horz = self.border_horz.get_rect()
+        self.rect_vert = self.border_vert.get_rect()
+        #self.rect_top.topleft = [8, 8]
+        self.display.blit(self.border_horz, (8, 8))
+        self.display.blit(self.border_horz, (8, 768-16))
+        self.display.blit(self.border_vert, (8, 8))
+        self.display.blit(self.border_vert, (1024-16, 8))
+        
         # render each sprite
         #Boundary.group.draw(self.display)
         Army.group.draw(self.display)
@@ -111,6 +131,8 @@ class App:
         Guerrilla.group.empty()
         Prison.group.empty()
         Target.group.empty()
+        Army.instances = {}
+        Boundary.instances = []
         self.running = True
         self.on_run()
 
@@ -166,7 +188,10 @@ class App:
             self.on_render()
             self.clock.tick(60)
 
-        self.on_cleanup()
+        if self.end:
+            pygame.quit()
+        else:
+            self.on_cleanup()
 
 class Army(pygame.sprite.Sprite):
     group = pygame.sprite.Group()  #??
@@ -322,7 +347,7 @@ class Target(pygame.sprite.Sprite):
 class Guerrilla(pygame.sprite.Sprite):
     group = pygame.sprite.Group()
     MAX_SPEED = 1.5  # lowest bug-free speed
-    ATTACK_RADIUS = 1.5
+    ATTACK_RADIUS = 2 
     ATTACK_STRENGTH = 5
     TOLERANCE = MAX_SPEED * 0.25
     DIM = 16
@@ -406,19 +431,25 @@ class Guerrilla(pygame.sprite.Sprite):
         self.army_collisions = pygame.sprite.spritecollide(self, army_group, False, pygame.sprite.collide_circle_ratio(Guerrilla.ATTACK_RADIUS)) #??
         if len(self.army_collisions) > 0:
             self.closest = [0, math.sqrt(((self.army_collisions[0].x * Army.DIM)**2)+((self.army_collisions[0].y * Army.DIM)**2))]
+            self.dist_list = []
             for i, army in enumerate(self.army_collisions):
-                # identify closest army unit
-                distance = math.sqrt(((self.army_collisions[i].x * Army.DIM)**2)+((self.army_collisions[i].y * Army.DIM)**2))
-                if distance > self.closest[1]:
-                    self.closest = [i, distance]
+                self.distance = math.sqrt(((self.army_collisions[i].x * Army.DIM)**2)+((self.army_collisions[i].y * Army.DIM)**2))
+                self.dist_list.append(self.distance)
 
-            closest_army = self.army_collisions[self.closest[0]]
-            closest_army.communism -= Guerrilla.ATTACK_STRENGTH
-            closest_army.image.fill ((192, 192, 192))
+                # identify closest army unit
+                #distance = math.sqrt(((self.army_collisions[i].x * Army.DIM)**2)+((self.army_collisions[i].y * Army.DIM)**2))
+                #if distance > self.closest[1]:
+                #    self.closest = [i, distance]
+
+            self.closest_army = self.army_collisions[self.dist_list.index(min(self.dist_list))]
+
+            #closest_army = self.army_collisions[self.closest[0]]
+            self.closest_army.communism -= Guerrilla.ATTACK_STRENGTH
+            self.closest_army.image.fill ((192, 192, 192))
             # if we lowered health to 0 or below, delete this instance of army
-            if closest_army.communism <= 0:
-                del Army.instances[f'{closest_army.x},{closest_army.y}']
-                Army.group.remove(closest_army)
+            if self.closest_army.communism <= 0:
+                del Army.instances[f'{self.closest_army.x},{self.closest_army.y}']
+                Army.group.remove(self.closest_army)
                 # play army death audio
                 pygame.mixer.Channel(4).play(self.army_death)
 
