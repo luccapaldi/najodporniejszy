@@ -22,7 +22,7 @@ class App:
     movement = pygame.mixer.Sound("assets/music/movement.wav")
     background_music = pygame.mixer.Sound("assets/music/Varshavjanka.wav")
     movement.set_volume(0.3)
-    background_music.set_volume(0.5)
+    background_music.set_volume(0.3)
  
     def __init__(self):
         pygame.init()
@@ -116,19 +116,22 @@ class App:
         self.generator_action = 0
         self.army_action = 0
 
-        Army.group.add(Army(50, 25, 90))
-        Army.group.add(Army(51, 25, 90))
-        Army.group.add(Army(50, 26, 90))
-        Army.group.add(Army(51, 26, 90))
-        Army.group.add(Army(55, 25, 90))
-        Army.group.add(Army(56, 25, 90))
-        Army.group.add(Army(50, 26, 90))
-        Army.group.add(Army(56, 26, 90))
-        Army.group.add(Army(int((912/16)-1), int((624/16)-1), 90))
-        Generator.group.add(Generator(750, 350, 30))
-        Generator.group.add(Generator(int(912-(5*16)), int(624-(6*16)), 30))
+        #Generator.group.add(Generator(446, 320, 30))
+        #Army.group.add(Army(int(446/16), int(320/16), 90))
+        Generator.group.add(Generator(633, 403, 30))
+        Army.group.add(Army(int(633/16), int(403/16), 90))
+        Generator.group.add(Generator(748, 346, 30))
+        Army.group.add(Army(int(748/16), int(346/16), 90))
+        Generator.group.add(Generator(582, 92, 30))
+        Army.group.add(Army(int(582/16), int(92/16)+1, 90))
+        Generator.group.add(Generator(273, 184, 30))
+        Army.group.add(Army(int(273/16)+1, int(184/16), 90))
+        Generator.group.add(Generator(453, 472, 30))
+        Army.group.add(Army(int(453/16), int(472/16), 90))
         Guerrilla.group.add(Guerrilla(500, 500))
-        Prison.group.add(Prison(170,170))
+        Prison.group.add(Prison(667,604))
+        Prison.group.add(Prison(903,233))
+        Prison.group.add(Prison(866,461))
 
         while self.running:
             for event in pygame.event.get():
@@ -299,9 +302,9 @@ class Guerrilla(pygame.sprite.Sprite):
     army_death = pygame.mixer.Sound("assets/music/kill2.wav")
     guerrilla_death = pygame.mixer.Sound("assets/music/guerrilla_death.wav")
     free_guerrilla = pygame.mixer.Sound("assets/music/free_guerrilla.wav")
-    army_death.set_volume(0.5)
-    guerrilla_death.set_volume(0.8)
-    free_guerrilla.set_volume(0.8)
+    army_death.set_volume(0.3)
+    guerrilla_death.set_volume(0.3)
+    free_guerrilla.set_volume(0.3)
 
     def __init__(self, x, y):
         super().__init__()
@@ -398,7 +401,7 @@ class Generator(pygame.sprite.Sprite):
 
     pygame.mixer.init()
     soviet_surge = pygame.mixer.Sound("assets/music/soviets.wav")
-    soviet_surge.set_volume(0.5)
+    soviet_surge.set_volume(0.3)
 
     def __init__(self, x, y, rate):
         super().__init__()
@@ -407,7 +410,7 @@ class Generator(pygame.sprite.Sprite):
         self.BASE_RATE = rate
         self.rate = self.BASE_RATE
         self.cooldown = 0
-        self.image = pygame.Surface([32, 32])
+        self.image = pygame.Surface([16, 16])
         self.image.fill ((0, 0, 0))
 
         # Fetch rectangle object with dimensions of image
@@ -422,7 +425,8 @@ class Generator(pygame.sprite.Sprite):
         self.army_collisions = pygame.sprite.spritecollide(self, army_group, False, pygame.sprite.collide_circle_ratio(Generator.RATIO)) #??
         # increase communism values
         for army in self.army_collisions:
-            army.communism += self.rate
+            if f'{army.x},{army.y}' not in Boundary.instances:
+                army.communism += self.rate
 
         if self.rate > self.BASE_RATE:
             # play soviet reinforcement sound
@@ -460,7 +464,7 @@ class Prison(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.x, self.y = x, y
-        self.image = pygame.Surface([32, 32])
+        self.image = pygame.Surface([16, 16])
 
         self.image.fill ((0, 0, 255))
 
@@ -499,6 +503,7 @@ class Boundary(pygame.sprite.Sprite):
         collided = pygame.sprite.groupcollide(Guerrilla.group, cls.group, False, False)
         for guerrilla in collided:
             guerrilla.target = guerrilla.x, guerrilla.y
+            # TODO implement rebound by setting new target
 
 if __name__ == "__main__":
     game = App()
