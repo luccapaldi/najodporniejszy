@@ -74,7 +74,9 @@ class App:
 
     def on_render(self):
         # blank screen for new drawing
+        self.display.fill((240, 240, 240))
         self.display.blit(self.poland, (0, 0))
+        self.display.blit(self.title, (16, 16))
         #self.display.fill((255, 255, 255))
         # render each sprite
         #Boundary.group.draw(self.display)
@@ -96,6 +98,8 @@ class App:
         self.poland = pygame.image.load("assets/sprites/poland.png")
         # load coordinates of boundary tiles and create them as sprites
         Boundary.set_boundary("assets/boundary.txt")
+        # load title sprite
+        self.title = pygame.image.load("assets/sprites/title.png")
 
         # record time that game starts
         # initialize all the sprites
@@ -279,7 +283,7 @@ class Guerrilla(pygame.sprite.Sprite):
     ATTACK_RADIUS = 1.5
     ATTACK_STRENGTH = 1 
     TOLERANCE = MAX_SPEED * 0.25
-    DIM = 32
+    DIM = 16
 
     def __init__(self, x, y):
         super().__init__()
