@@ -347,17 +347,19 @@ class Target(pygame.sprite.Sprite):
 class Guerrilla(pygame.sprite.Sprite):
     group = pygame.sprite.Group()
     MAX_SPEED = 1.5  # lowest bug-free speed
-    ATTACK_RADIUS = 2 
+    ATTACK_RADIUS = 1.5 
     ATTACK_STRENGTH = 5
     TOLERANCE = MAX_SPEED * 0.25
     DIM = 16
 
     pygame.mixer.init()
-    army_death = pygame.mixer.Sound("assets/music/kill2.wav")
+    army_death = pygame.mixer.Sound("assets/music/kill.wav")
     guerrilla_death = pygame.mixer.Sound("assets/music/guerrilla_death.wav")
+    generator_death = pygame.mixer.Sound("assets/music/generator_death.wav")
     free_guerrilla = pygame.mixer.Sound("assets/music/free_guerrilla.wav")
     army_death.set_volume(0.3)
     guerrilla_death.set_volume(0.3)
+    generator_death.set_volume(0.3)
     free_guerrilla.set_volume(0.3)
 
     def __init__(self, x, y):
@@ -392,7 +394,12 @@ class Guerrilla(pygame.sprite.Sprite):
             self.destroy()
 
         # check for collisions with generators
-        self.generator_collisions = pygame.sprite.spritecollide(self, generator_group, True)
+        self.generator_collisions = pygame.sprite.spritecollide(self, generator_group, False)
+        for generator in self.generator_collisions:
+            # play generator destruction sound
+            pygame.mixer.Channel(6).play(self.generator_death)
+            # delete generator
+            generator_group.remove(generator)
 
         # check for collisions with prisons
         self.prison_collisions = pygame.sprite.spritecollide(self, prison_group, False)
@@ -428,38 +435,37 @@ class Guerrilla(pygame.sprite.Sprite):
                 self.y += self.vel_y
 
         # attacking
-        self.army_collisions = pygame.sprite.spritecollide(self, army_group, False, pygame.sprite.collide_circle_ratio(Guerrilla.ATTACK_RADIUS)) #??
+        self.army_collisions = pygame.sprite.spritecollide(self, army_group, False, pygame.sprite.collide_circle_ratio(Guerrilla.ATTACK_RADIUS)) 
+        # check at least one enemy is within attack radius
         if len(self.army_collisions) > 0:
-            self.closest = [0, math.sqrt(((self.army_collisions[0].x * Army.DIM)**2)+((self.army_collisions[0].y * Army.DIM)**2))]
-            self.dist_list = []
-            for i, army in enumerate(self.army_collisions):
-                self.distance = math.sqrt(((self.army_collisions[i].x * Army.DIM)**2)+((self.army_collisions[i].y * Army.DIM)**2))
-                self.dist_list.append(self.distance)
+            # identify the closest enemy
+            self.closest = [0, math.sqrt((self.army_collisions[0].x ** 2)
+                                         + (self.army_collisions[0].y ** 2)) * Army.DIM]
+            for i in range(len(self.army_collisions)):
+                self.distance = math.sqrt((self.army_collisions[i].x ** 2)
+                                         + (self.army_collisions[i].y ** 2)) * Army.DIM
+                if self.distance > self.closest[1]:
+                    self.closest = [i, self.distance]
 
-                # identify closest army unit
-                #distance = math.sqrt(((self.army_collisions[i].x * Army.DIM)**2)+((self.army_collisions[i].y * Army.DIM)**2))
-                #if distance > self.closest[1]:
-                #    self.closest = [i, distance]
-
-            self.closest_army = self.army_collisions[self.dist_list.index(min(self.dist_list))]
-
-            #closest_army = self.army_collisions[self.closest[0]]
+            # attack the closest enemy
+            self.closest_army = self.army_collisions[self.closest[0]]
             self.closest_army.communism -= Guerrilla.ATTACK_STRENGTH
             self.closest_army.image.fill ((192, 192, 192))
-            # if we lowered health to 0 or below, delete this instance of army
+
+            # if health is 0 or below, delete the army instance
             if self.closest_army.communism <= 0:
                 del Army.instances[f'{self.closest_army.x},{self.closest_army.y}']
                 Army.group.remove(self.closest_army)
                 # play army death audio
-                pygame.mixer.Channel(4).play(self.army_death)
+                pygame.mixer.Channel(5).play(self.army_death)
 
 class Generator(pygame.sprite.Sprite):
     group = pygame.sprite.Group()  #??
     TRIGGER = 3 # number of guerrillas to trigger soviets
-    DETECTION = 50 # detection radius for soviet reinforcements
+    DETECTION = 75 # detection radius for soviet reinforcements
     WAVE = 2000 # [ms] frequency that update loop runs
     RATIO = 1.5
-    COOLDOWN = 60000 # [ms] cooldown on soviet surge
+    COOLDOWN = 30000 # [ms] cooldown on soviet surge
 
     pygame.mixer.init()
     soviet_surge = pygame.mixer.Sound("assets/music/soviets.wav")
