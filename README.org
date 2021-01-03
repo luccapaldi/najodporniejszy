@@ -17,12 +17,12 @@ The only way to survive is through quick action and extreme strategy.
 
 How to play:
 
-Move your guerrillas by clicking and dragging.
-Free additional guerrillas from prisons.
-Guerrillas automatically attack nearby Soviet forces but will die if they come into direct contact.
-The Soviets spread from generation points (major cities), but will be destroyed if they come into direct contact with a guerrilla.
-Press R to restart the game.
-Press Q to quit.
+- Move your guerrillas by clicking and dragging.
+- Free additional guerrillas from prisons.
+- Guerrillas automatically attack nearby Soviet forces but will die if they come into direct contact.
+- The Soviets spread from generation points (major cities), but will be destroyed if they come into direct contact with a guerrilla.
+- Press R to restart the game.
+- Press Q to quit.
 
 Prepare for a cursed experience!
 
