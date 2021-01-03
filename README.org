@@ -1,0 +1,29 @@
+* The Cursed Soldiers
+[[https://xcapaldi.itch.io/the-cursed-soldiers][This game]] was submitted to the [[https://itch.io/jam/historically-accurate-3][Historically Accurate Game Jam 3]].
+
+[[file:banner.png]]
+
+Following WWII, the Republic of Poland fell to the political and economic oppression of the Soviet Union.
+Under Joseph Stalin, the former anti-Nazi movement in Poland was crushed and the country  absorbed into the Eastern Bloc.
+There it remained for the entirety of the Cold War, serving only as a pawn for the Soviets.
+Few realize, however, that from 1945-1946, Polish anti-Communist guerrillas fought heroically against the Soviet regime spreading through their country.
+To the Polish people, they were known as the Cursed Soldiers... so called due to the hopeless nature of their fight.
+But to the Soviets, they were a dangerous foe that successfully launched dozens of attacks on prisons, freeing hundreds of political prisoners.
+
+Play as Żelazny, an anti-Communist guerrilla, who must free his imprisoned companions (Sokół, Krzewin, Henryk, and Tarzan) while simultaneously launching a strategic offensive against the spreading Soviet forces.
+Move too slowly and risk being cut off from allies; move too quickly and risk facing an untimely end.
+Fight alone and risk being overwhelmed; fight together and face Soviet reinforcements.
+The only way to survive is through quick action and extreme strategy.
+
+How to play:
+
+Move your guerrillas by clicking and dragging.
+Free additional guerrillas from prisons.
+Guerrillas automatically attack nearby Soviet forces but will die if they come into direct contact.
+The Soviets spread from generation points (major cities), but will be destroyed if they come into direct contact with a guerrilla.
+Press R to restart the game.
+Press Q to quit.
+
+Prepare for a cursed experience!
+
+[[file:screenshot.png]]
